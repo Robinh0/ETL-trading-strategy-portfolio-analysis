@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def camel_to_snake_case(input):
     return input.lower().replace(" ", "_")
 
@@ -27,7 +28,7 @@ def create_and_merge_dataframes(selected_columns):
         df = df.dropna(subset=['ending_date'])
         df = df.reset_index(drop=True)
         return df
-    
+
     dataframes = []
     for file in csv_files:
         df = pd.read_csv(f"{file}")
@@ -38,7 +39,8 @@ def create_and_merge_dataframes(selected_columns):
         df['profit_%'] = (df['profit_%'] / 100).astype(float)
         new_df = df[selected_columns]
         dataframes.append(new_df)
-    df = pd.concat(dataframes, ignore_index=True).sort_values(by='starting_date').reset_index(drop=True)
+    df = pd.concat(dataframes, ignore_index=True).sort_values(
+        by='starting_date').reset_index(drop=True)
 
     df['trade_skipped'] = False
     df['counter'] = 0
@@ -48,7 +50,8 @@ def create_and_merge_dataframes(selected_columns):
 
 
 def create_first_row_starting_bankroll(df, columns):
-    data = {column: None for column in columns}  # Create a dictionary for all columns
+    # Create a dictionary for all columns
+    data = {column: None for column in columns}
     data['cum_bankroll'] = INITIAL_BANKROLL  # Set cum_bankroll to 30000
     df_first_row = pd.DataFrame([data])  # Create DataFrame with one row
     df = pd.concat([df_first_row, df], ignore_index=True)
@@ -64,15 +67,17 @@ def calculate_cum_bankroll(df, pct_capital_per_trade):
         if (trade_skipped == "insufficient_buying_power") or (trade_skipped == "counter_skip_trade"):
             cum_bankroll = previous_bankroll
         else:
-            cum_bankroll = (previous_bankroll + (previous_bankroll * (profit_percent) * pct_capital_per_trade))
+            cum_bankroll = (previous_bankroll + (previous_bankroll *
+                            (profit_percent) * pct_capital_per_trade))
         df.loc[i, 'cum_bankroll'] = cum_bankroll
-    df['cum_bankroll'] = round(df['cum_bankroll'].astype(float), 0) 
+    df['cum_bankroll'] = round(df['cum_bankroll'].astype(float), 0)
     return df
 
 
 def calculate_n_open_trades(df):
     for i in range(0, len(df)):
-        n_open_trades = len(df[(df['starting_date'] <= df.loc[i, 'starting_date']) & (df["ending_date"] >= df.loc[i, 'ending_date']) & (df['trade_skipped'] == False)])
+        n_open_trades = len(df[(df['starting_date'] <= df.loc[i, 'starting_date']) & (
+            df["ending_date"] >= df.loc[i, 'ending_date']) & (df['trade_skipped'] == False)])
         if n_open_trades > MAX_TRADES:
             n_open_trades = MAX_TRADES
             df.loc[i, 'trade_skipped'] = 'insufficient_buying_power'
@@ -84,9 +89,11 @@ def create_max_drawdown_column(df):
     for i in range(0, len(df)):
         highest_bankroll = df['cum_bankroll'][:i+1].max()
         current_bankroll = df.loc[i, 'cum_bankroll']
-        drawdown = ((highest_bankroll - current_bankroll) / highest_bankroll) * -1
-        df.loc[i, 'highest_high'] = highest_bankroll  # Store the highest high up to row i
-        df.loc[i, 'max_drawdown'] = round(drawdown,2)
+        drawdown = ((highest_bankroll - current_bankroll) /
+                    highest_bankroll) * -1
+        # Store the highest high up to row i
+        df.loc[i, 'highest_high'] = highest_bankroll
+        df.loc[i, 'max_drawdown'] = round(drawdown, 2)
     return df
 
 
@@ -99,7 +106,7 @@ def calculate_counter(df):
         else:
             previous_counter = df.loc[i-1, 'counter']
         profit = df.loc[i, 'profit_%']
-        counter = previous_counter +1
+        counter = previous_counter + 1
         if profit > 0:
             df.loc[i, 'counter_reset'] = True
         df.loc[i, 'counter'] = counter
@@ -116,7 +123,8 @@ def create_subplots(df):
     fig, ax1 = plt.subplots()
 
     # Plot cum_bankroll with a logarithmic scale on the primary y-axis
-    ax1.plot(df['ending_date'], df['cum_bankroll'], marker='o', color='b', linestyle='-', label='Cumulative Bankroll')
+    ax1.plot(df['ending_date'], df['cum_bankroll'], marker='o',
+             color='b', linestyle='-', label='Cumulative Bankroll')
     ax1.set_xlabel('Ending Date')
     ax1.set_ylabel('Cumulative Bankroll (Log Scale)', color='b')
     ax1.set_yscale('log')
@@ -124,25 +132,29 @@ def create_subplots(df):
 
     # Create a twin y-axis for max_drawdown on the same plot
     ax2 = ax1.twinx()  # This creates a new y-axis that shares the same x-axis
-    ax2.plot(df['ending_date'], df['max_drawdown'], marker='x', color='r', linestyle='--', label='Max Drawdown')
+    ax2.plot(df['ending_date'], df['max_drawdown'], marker='x',
+             color='r', linestyle='--', label='Max Drawdown')
     ax2.set_ylabel('Max Drawdown', color='r')
     ax2.tick_params(axis='y', labelcolor='r')
 
     # Add grid and titles
     plt.title('Cumulative Bankroll and Max Drawdown Over Time')
     ax1.grid(True)
-    plt.savefig(f'bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
+    plt.savefig(
+        f'bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
 
 
 def create_cum_bankroll_plot(df):
-    plt.plot(df['ending_date'], df['cum_bankroll'], marker='o', color='b', linestyle='-', label='Cumulative Bankroll')
+    plt.plot(df['ending_date'], df['cum_bankroll'], marker='o',
+             color='b', linestyle='-', label='Cumulative Bankroll')
     plt.title('Cumulative Bankroll Over Time')
     plt.xlabel('Date')
     plt.ylabel('Cumulative Bankroll')
     plt.yscale('log')
     plt.grid(True)
     plt.legend()
-    plt.savefig(f'cum_bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
+    plt.savefig(
+        f'cum_bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
 
 
 # CONSTANTS
@@ -151,7 +163,8 @@ MARGIN_FACTOR = 4
 # PCT_OF_CAPITAL_PER_TRADE = 0.5
 MAX_COUNTER_VALUE = 20
 # MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
-SELECTED_COLUMNS_START = ['symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
+SELECTED_COLUMNS_START = [
+    'symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
 
 csv_files = get_csv_files()
 
@@ -160,10 +173,12 @@ for i in np.arange(0.25, 0.5, 0.25):
     MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
 
     df = create_and_merge_dataframes(SELECTED_COLUMNS_START)
-    df = create_first_row_starting_bankroll(df=df, columns=SELECTED_COLUMNS_START)
+    df = create_first_row_starting_bankroll(
+        df=df, columns=SELECTED_COLUMNS_START)
     df = calculate_counter(df)
     df = calculate_n_open_trades(df)
-    df = calculate_cum_bankroll(df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
+    df = calculate_cum_bankroll(
+        df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
     df = create_max_drawdown_column(df)
 
     # Removes the first row with the initial_bankroll and counter value.
@@ -176,6 +191,6 @@ for i in np.arange(0.25, 0.5, 0.25):
     print(df)
 
     # Exports
-    df.to_csv(f'results/df_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.csv')
+    df.to_csv(
+        f'results/df_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.csv')
     create_subplots(df)
-
