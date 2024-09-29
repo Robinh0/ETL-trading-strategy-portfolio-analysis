@@ -39,13 +39,20 @@ def create_and_merge_dataframes(selected_columns):
         new_df = df[selected_columns]
         dataframes.append(new_df)
     df = pd.concat(dataframes, ignore_index=True).sort_values(by='starting_date').reset_index(drop=True)
+
+    df['trade_skipped'] = False
+    df['counter'] = 0
+    df['counter_reset'] = None
+    df['max_trades'] = MAX_TRADES
     return df
+
 
 def create_first_row_starting_bankroll(df, columns):
     data = {column: None for column in columns}  # Create a dictionary for all columns
     data['cum_bankroll'] = INITIAL_BANKROLL  # Set cum_bankroll to 30000
     df_first_row = pd.DataFrame([data])  # Create DataFrame with one row
     df = pd.concat([df_first_row, df], ignore_index=True)
+    df.loc[0, 'trade_skipped'] = None
     return df
 
 
@@ -61,6 +68,7 @@ def calculate_cum_bankroll(df, pct_capital_per_trade):
         df.loc[i, 'cum_bankroll'] = cum_bankroll
     df['cum_bankroll'] = round(df['cum_bankroll'].astype(float), 0) 
     return df
+
 
 def calculate_n_open_trades(df):
     for i in range(0, len(df)):
@@ -100,49 +108,10 @@ def calculate_counter(df):
     return df
 
 
-# CONSTANTS
-INITIAL_BANKROLL = 1000
-MARGIN_FACTOR = 4
-# PCT_OF_CAPITAL_PER_TRADE = 0.5
-MAX_COUNTER_VALUE = 20
-# MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
-SELECTED_COLUMNS_START = ['symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
-
-csv_files = get_csv_files()
-
-# for i in range(1,20):
-for i in np.arange(0.25, 4.25, 0.25):
-    # MAX_COUNTER_VALUE = i
-    PCT_OF_CAPITAL_PER_TRADE = i
-    MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
-
-    df = create_and_merge_dataframes(SELECTED_COLUMNS_START)
-
-    df['trade_skipped'] = False
-    df['counter'] = 0
-    df['counter_reset'] = None
-    df['max_trades'] = MAX_TRADES
-
-    df = create_first_row_starting_bankroll(df=df, columns=SELECTED_COLUMNS_START)
-    df.loc[0, 'trade_skipped'] = None
-
-    df = calculate_counter(df)
-    df = calculate_n_open_trades(df)
-
-    df = calculate_cum_bankroll(df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
-    df = create_max_drawdown_column(df)
-
-    df = df[1:]
-
-    # PRINT STATEMENT
-    print("\nStart of df:")
-    print(df[:50])
-
-    print("\nFinal print statement:")
-    print(df)
-
-    df.to_csv(f'results/df_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.csv')
-
+def create_subplots(df):
+    """
+    Creates plots with the logarithmic cum_bankroll on the left y axis, and the max_drawdown on the right y axis.
+    """
     # Create a new figure and axis for the cum_bankroll
     fig, ax1 = plt.subplots()
 
@@ -162,13 +131,51 @@ for i in np.arange(0.25, 4.25, 0.25):
     # Add grid and titles
     plt.title('Cumulative Bankroll and Max Drawdown Over Time')
     ax1.grid(True)
-
-    # Old code for only the cum_bankroll graph in the plot.
-    # plt.plot(df['ending_date'], df['cum_bankroll'], marker='o', color='b', linestyle='-', label='Cumulative Bankroll')
-    # plt.title('Cumulative Bankroll Over Time')
-    # plt.xlabel('Date')
-    # plt.ylabel('Cumulative Bankroll')
-    # plt.yscale('log')
-    # plt.grid(True)
-    # plt.legend()
     plt.savefig(f'bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
+
+
+def create_cum_bankroll_plot(df):
+    plt.plot(df['ending_date'], df['cum_bankroll'], marker='o', color='b', linestyle='-', label='Cumulative Bankroll')
+    plt.title('Cumulative Bankroll Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Cumulative Bankroll')
+    plt.yscale('log')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(f'cum_bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
+
+
+# CONSTANTS
+INITIAL_BANKROLL = 1000
+MARGIN_FACTOR = 4
+# PCT_OF_CAPITAL_PER_TRADE = 0.5
+MAX_COUNTER_VALUE = 20
+# MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
+SELECTED_COLUMNS_START = ['symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
+
+csv_files = get_csv_files()
+
+for i in np.arange(0.25, 0.5, 0.25):
+    PCT_OF_CAPITAL_PER_TRADE = i
+    MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
+
+    df = create_and_merge_dataframes(SELECTED_COLUMNS_START)
+    df = create_first_row_starting_bankroll(df=df, columns=SELECTED_COLUMNS_START)
+    df = calculate_counter(df)
+    df = calculate_n_open_trades(df)
+    df = calculate_cum_bankroll(df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
+    df = create_max_drawdown_column(df)
+
+    # Removes the first row with the initial_bankroll and counter value.
+    df = df[1:]
+
+    # Prints
+    print("\nStart of df:")
+    print(df[:50])
+    print("\nFinal print statement:")
+    print(df)
+
+    # Exports
+    df.to_csv(f'results/df_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.csv')
+    create_subplots(df)
+
