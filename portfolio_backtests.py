@@ -8,9 +8,11 @@ def camel_to_snake_case(input):
     return input.lower().replace(" ", "_")
 
 
-def get_csv_files():
+def get_csv_files(strategy_folder_name):
     current_directory = os.getcwd()
-    all_files = os.listdir(current_directory)
+    subdirectory = os.path.join(
+        current_directory, 'tradingview_backtests', strategy_folder_name)
+    all_files = os.listdir(subdirectory)
     csv_files = [file for file in all_files if file.endswith('.csv')]
     return csv_files
 
@@ -31,7 +33,8 @@ def create_and_merge_dataframes(selected_columns):
 
     dataframes = []
     for file in csv_files:
-        df = pd.read_csv(f"{file}")
+        df = pd.read_csv(
+            f"tradingview_backtests/{STRATEGY_FOLDER_NAME}/{file}")
         df.columns = [camel_to_snake_case(column) for column in df.columns]
         df['symbol'] = file.split('.')[0]
         df['cum_bankroll'] = None
@@ -46,13 +49,16 @@ def create_and_merge_dataframes(selected_columns):
     df['counter'] = 0
     df['counter_reset'] = None
     df['max_trades'] = MAX_TRADES
+
+    df = create_first_row_starting_bankroll(
+        df=df, columns=selected_columns)
     return df
 
 
 def create_first_row_starting_bankroll(df, columns):
     # Create a dictionary for all columns
     data = {column: None for column in columns}
-    data['cum_bankroll'] = INITIAL_BANKROLL  # Set cum_bankroll to 30000
+    data['cum_bankroll'] = STARTING_BANKROLL  # Set cum_bankroll to 30000
     df_first_row = pd.DataFrame([data])  # Create DataFrame with one row
     df = pd.concat([df_first_row, df], ignore_index=True)
     df.loc[0, 'trade_skipped'] = None
@@ -157,40 +163,58 @@ def create_cum_bankroll_plot(df):
         f'cum_bankroll_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.png', format='png', dpi=300)
 
 
+def remove_first_placeholder_row(df):
+    return df[1:]
+
+
 # CONSTANTS
-INITIAL_BANKROLL = 1000
+STARTING_BANKROLL = 1000
 MARGIN_FACTOR = 4
-# PCT_OF_CAPITAL_PER_TRADE = 0.5
 MAX_COUNTER_VALUE = 20
-# MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
 SELECTED_COLUMNS_START = [
     'symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
 
-csv_files = get_csv_files()
+# STRATEGY_FOLDER_NAME = 'fib_dynamic'
+STRATEGY_FOLDER_NAME = 'quant_program'
 
-for i in np.arange(0.25, 0.5, 0.25):
+csv_files = get_csv_files(STRATEGY_FOLDER_NAME)
+result_dataframes = []
+
+for i in np.arange(0.25, 4.25, 0.25):
     PCT_OF_CAPITAL_PER_TRADE = i
     MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
 
     df = create_and_merge_dataframes(SELECTED_COLUMNS_START)
-    df = create_first_row_starting_bankroll(
-        df=df, columns=SELECTED_COLUMNS_START)
     df = calculate_counter(df)
     df = calculate_n_open_trades(df)
     df = calculate_cum_bankroll(
         df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
     df = create_max_drawdown_column(df)
-
-    # Removes the first row with the initial_bankroll and counter value.
-    df = df[1:]
+    df = remove_first_placeholder_row(df)
 
     # Prints
-    print("\nStart of df:")
+    print("\nFirst 50 rows:")
     print(df[:50])
-    print("\nFinal print statement:")
+    print("\nHead and tail of df:")
     print(df)
 
     # Exports
     df.to_csv(
         f'results/df_pctCap_{PCT_OF_CAPITAL_PER_TRADE}_maxCounter_{MAX_COUNTER_VALUE}.csv')
-    create_subplots(df)
+    # create_subplots(df)
+
+    # Create result_df with a single row
+    result_df = pd.DataFrame([{
+        'starting_bankroll': STARTING_BANKROLL,
+        'ending_bankroll': df.iloc[-1]['cum_bankroll'],
+        'max_drawdown': min(df['max_drawdown']),
+        'pct_capital_per_trade': PCT_OF_CAPITAL_PER_TRADE,
+        'max_counter': MAX_COUNTER_VALUE,
+        'margin_factor': MARGIN_FACTOR,
+        'max_open_trades': MAX_TRADES,
+    }])
+    result_dataframes.append(result_df)
+    # print(result_df)
+
+results = pd.concat(result_dataframes, ignore_index=True)
+results.to_csv('results/results.csv')
