@@ -195,8 +195,8 @@ for i in np.arange(0.25, 4.25, 0.25):
     # Prints
     print("\nFirst 50 rows:")
     print(df[:50])
-    print("\nHead and tail of df:")
-    print(df)
+    print("\nLast 20 rows:")
+    print(df[-20:])
 
     # Exports
     df.to_csv(
@@ -214,7 +214,9 @@ for i in np.arange(0.25, 4.25, 0.25):
         'max_open_trades': MAX_TRADES,
     }])
     result_dataframes.append(result_df)
-    # print(result_df)
+    if len(result_dataframes) >= 1:
+        results = pd.concat(result_dataframes, ignore_index=True)
+    print()
+    print(results)
 
-results = pd.concat(result_dataframes, ignore_index=True)
 results.to_csv('results/results.csv')
