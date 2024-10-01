@@ -56,68 +56,76 @@ def create_and_merge_dataframes(selected_columns):
 
 
 def create_first_row_starting_bankroll(df, columns):
-    # Create a dictionary for all columns
     data = {column: None for column in columns}
-    data['cum_bankroll'] = STARTING_BANKROLL  # Set cum_bankroll to 30000
-    df_first_row = pd.DataFrame([data])  # Create DataFrame with one row
+    data['cum_bankroll'] = STARTING_BANKROLL
+    df_first_row = pd.DataFrame([data])
     df = pd.concat([df_first_row, df], ignore_index=True)
     df.loc[0, 'trade_skipped'] = None
     return df
 
 
-def calculate_cum_bankroll(df, pct_capital_per_trade):
-    for i in range(1, len(df)):
-        previous_bankroll = df.loc[i-1, 'cum_bankroll']
-        profit_percent = df.loc[i, 'profit_%']
-        trade_skipped = df.loc[i, 'trade_skipped']
-        if (trade_skipped == "insufficient_buying_power") or (trade_skipped == "counter_skip_trade"):
-            cum_bankroll = previous_bankroll
-        else:
-            cum_bankroll = (previous_bankroll + (previous_bankroll *
-                            (profit_percent) * pct_capital_per_trade))
-        df.loc[i, 'cum_bankroll'] = cum_bankroll
+def calculate_cum_bankroll(df, pct_capital_per_trade, i):
+    """
+    Loops over the counter i and calculates the 'cum_bankroll' and values for the row.
+    Returns the df with the filled in values.
+    """
+    previous_bankroll = df.loc[i-1, 'cum_bankroll']
+    profit_percent = df.loc[i, 'profit_%']
+    trade_skipped = df.loc[i, 'trade_skipped']
+    if (trade_skipped == "insufficient_buying_power") or (trade_skipped == "counter_skip_trade"):
+        cum_bankroll = previous_bankroll
+    else:
+        cum_bankroll = (previous_bankroll + (previous_bankroll *
+                        (profit_percent) * pct_capital_per_trade))
+    df.loc[i, 'cum_bankroll'] = cum_bankroll
     df['cum_bankroll'] = round(df['cum_bankroll'].astype(float), 0)
     return df
 
 
-def calculate_n_open_trades(df):
-    for i in range(0, len(df)):
-        n_open_trades = len(df[(df['starting_date'] <= df.loc[i, 'starting_date']) & (
-            df["ending_date"] >= df.loc[i, 'ending_date']) & (df['trade_skipped'] == False)])
-        if n_open_trades > MAX_TRADES:
-            n_open_trades = MAX_TRADES
-            df.loc[i, 'trade_skipped'] = 'insufficient_buying_power'
-        df.loc[i, 'n_open_trades'] = n_open_trades
+def calculate_n_open_trades(df, i):
+    """
+    Loops over the counter i and calculates the 'n_open_trades' and 'trade_skipped' values for the row.
+    Returns the df with the filled in values.
+    """
+    n_open_trades = len(df[(df['starting_date'] <= df.loc[i, 'starting_date']) & (
+        df["ending_date"] >= df.loc[i, 'ending_date']) & (df['trade_skipped'] == False)])
+    if n_open_trades > MAX_TRADES:
+        n_open_trades = MAX_TRADES
+        df.loc[i, 'trade_skipped'] = 'insufficient_buying_power'
+    df.loc[i, 'n_open_trades'] = n_open_trades
     return df
 
 
-def create_max_drawdown_column(df):
-    for i in range(0, len(df)):
-        highest_bankroll = df['cum_bankroll'][:i+1].max()
-        current_bankroll = df.loc[i, 'cum_bankroll']
-        drawdown = ((highest_bankroll - current_bankroll) /
-                    highest_bankroll) * -1
-        # Store the highest high up to row i
-        df.loc[i, 'highest_high'] = highest_bankroll
-        df.loc[i, 'max_drawdown'] = round(drawdown, 2)
+def create_max_drawdown_column(df, i):
+    """
+    Loops over the counter i and calculates the 'highest_high' and 'max_drawdown' values for the row.
+    Returns the df with the filled in values.
+    """
+    highest_bankroll = df['cum_bankroll'][:i+1].max()
+    current_bankroll = df.loc[i, 'cum_bankroll']
+    drawdown = ((highest_bankroll - current_bankroll) /
+                highest_bankroll) * -1
+    df.loc[i, 'highest_high'] = highest_bankroll
+    df.loc[i, 'max_drawdown'] = round(drawdown, 2)
     return df
 
 
-def calculate_counter(df):
-    df['counter'] = 0
-    df['counter_reset'] = None
-    for i in range(1, len(df)):
-        if df.loc[i-1, 'counter_reset'] == True:
-            previous_counter = 0
-        else:
-            previous_counter = df.loc[i-1, 'counter']
-        profit = df.loc[i, 'profit_%']
-        counter = previous_counter + 1
-        if profit > 0:
-            df.loc[i, 'counter_reset'] = True
-        df.loc[i, 'counter'] = counter
-        if counter > MAX_COUNTER_VALUE:
-            df.loc[i, 'trade_skipped'] = 'counter_skip_trade'
+def calculate_counter(df, i):
+    """
+    Loops over the counter i and calculates the 'counter', 'counter_reset', and 'trade_skipped' values for the row.
+    Returns the df with the filled in values.
+    """
+    if df.loc[i-1, 'counter_reset'] == True:
+        previous_counter = 0
+    else:
+        previous_counter = df.loc[i-1, 'counter']
+    profit = df.loc[i, 'profit_%']
+    counter = previous_counter + 1
+    if profit > 0:
+        df.loc[i, 'counter_reset'] = True
+    df.loc[i, 'counter'] = counter
+    if counter > MAX_COUNTER_VALUE:
+        df.loc[i, 'trade_skipped'] = 'counter_skip_trade'
     return df
 
 
@@ -185,11 +193,12 @@ for i in np.arange(0.25, 4.25, 0.25):
     MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
 
     df = create_and_merge_dataframes(SELECTED_COLUMNS_START)
-    df = calculate_counter(df)
-    df = calculate_n_open_trades(df)
-    df = calculate_cum_bankroll(
-        df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE)
-    df = create_max_drawdown_column(df)
+    for i in range(1, len(df)):
+        df = calculate_counter(df, i)
+        df = calculate_n_open_trades(df, i)
+        df = calculate_cum_bankroll(
+            df, pct_capital_per_trade=PCT_OF_CAPITAL_PER_TRADE, i=i)
+        df = create_max_drawdown_column(df, i)
     df = remove_first_placeholder_row(df)
 
     # Prints
