@@ -66,8 +66,29 @@ def create_first_row_starting_bankroll(df, columns):
 
 def calculate_cum_bankroll(df, pct_capital_per_trade, i):
     """
-    Loops over the counter i and calculates the 'cum_bankroll' and values for the row.
-    Returns the df with the filled in values.
+    Calculate the cumulative bankroll for a given row in a DataFrame based on the 
+    percentage profit and capital allocation per trade.
+
+    This function iterates over the specified row index `i` in the DataFrame `df` 
+    and calculates the 'cum_bankroll' (cumulative bankroll) for that row, updating the 
+    DataFrame with the result. The calculation considers whether a trade was skipped 
+    due to insufficient buying power or any other reason.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing the trading data, including columns for 'cum_bankroll', 
+        'profit_%', and 'trade_skipped'.
+    pct_capital_per_trade : float
+        The fraction of capital allocated per trade (e.g., 0.1 for 10% of capital).
+    i : int
+        The index of the current row for which to calculate the cumulative bankroll.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        The input DataFrame `df`, with the 'cum_bankroll' value updated for row `i` and 
+        rounded across the entire column.
     """
     previous_bankroll = df.loc[i-1, 'cum_bankroll']
     profit_percent = df.loc[i, 'profit_%']
@@ -84,8 +105,29 @@ def calculate_cum_bankroll(df, pct_capital_per_trade, i):
 
 def calculate_n_open_trades(df, i):
     """
-    Loops over the counter i and calculates the 'n_open_trades' and 'trade_skipped' values for the row.
-    Returns the df with the filled in values.
+    Calculate the number of open trades for a given row in the DataFrame and determine 
+    if the current trade should be skipped due to insufficient buying power.
+
+    This function calculates the 'n_open_trades' for the specified row index `i` by 
+    counting the number of trades that are active (i.e., trades with a starting date 
+    less than or equal to the current trade's starting date and an ending date greater 
+    than or equal to the current trade's ending date). If the number of open trades 
+    exceeds a pre-defined `MAX_TRADES`, the trade is marked as skipped, and the 
+    'trade_skipped' column is updated accordingly.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing trading data, including columns for 'starting_date', 
+        'ending_date', 'n_open_trades', and 'trade_skipped'.
+    i : int
+        The index of the current row for which to calculate the number of open trades.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        The input DataFrame `df`, with the 'n_open_trades' and 'trade_skipped' values 
+        updated for row `i`.
     """
     n_open_trades = len(df[(df['starting_date'] <= df.loc[i, 'starting_date']) & (
         df["ending_date"] >= df.loc[i, 'ending_date']) & (df['trade_skipped'] == False)])
@@ -98,8 +140,28 @@ def calculate_n_open_trades(df, i):
 
 def create_max_drawdown_column(df, i):
     """
-    Loops over the counter i and calculates the 'highest_high' and 'max_drawdown' values for the row.
-    Returns the df with the filled in values.
+    Calculate the highest cumulative bankroll and the maximum drawdown for a given row 
+    in the DataFrame and update the corresponding columns.
+
+    This function computes the 'highest_high' (the highest value of the cumulative 
+    bankroll up to the current row `i`) and the 'max_drawdown' (the percentage decrease 
+    from the highest cumulative bankroll to the current bankroll for the current row). 
+    The results are stored in the respective columns in the DataFrame.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing trading data, including the 'cum_bankroll' column which 
+        holds the cumulative bankroll values.
+    i : int
+        The index of the current row for which to calculate the highest high and maximum 
+        drawdown.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        The input DataFrame `df`, with the 'highest_high' and 'max_drawdown' values 
+        updated for row `i`.
     """
     highest_bankroll = df['cum_bankroll'][:i+1].max()
     current_bankroll = df.loc[i, 'cum_bankroll']
