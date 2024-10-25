@@ -8,7 +8,7 @@ The tool also allowed me to find the optimal setting for the "max_counter_losing
 A list of .csv exports from Tradingview, for both trading strategies.
 
 **Output**
-A .csv file with the columns: starting_bankroll, ending_bankroll (hidden for privacy reasons), max_drawdown, pct_capital_per_trade, max_counter, margin_factor	max_open_trades.
+A .csv file with the columns: starting_bankroll, ending_bankroll (hidden below), max_drawdown, pct_capital_per_trade, max_counter, margin_factor	max_open_trades.
 
 ![image](https://github.com/user-attachments/assets/a59815a2-aedb-4e0f-97f5-0af6ab3c1858)
 
