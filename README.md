@@ -4,12 +4,14 @@ This is an ETL pipeline that I created to analyse the backtests of two individua
 
 The tool also allowed me to find the optimal setting for the "max_counter_losing_trade_sequence" variable, which is around 20. After 20 sequent losses, the position sizing will be adjusted to 1 share, untill the first trade with profit re-occurs.
 
+
 **Input**  
 A list of .csv exports from Tradingview, for both trading strategies.
 
 
 **Output**  
 A .csv file with the columns: starting_bankroll, ending_bankroll (hidden below), max_drawdown, pct_capital_per_trade, max_counter, margin_factor	max_open_trades.
+
 
 **Results**  
 Below we see a comparison of the results with a position size of 0.25 (25%) of the total bankroll. From the images, we can see that the fib_dynamic strategy has slightly lower profits, but much less drawdown, being 17% as compared to 26% with the quant_program strategy. The fib_dynamic strategy with a position size of 0.5 would have (1682199511.0/6018042.0 = 290) times more profit than the 0.25 position size quant_program strategy, whilst having only 4% more drawdown (see tables below).
