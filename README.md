@@ -5,6 +5,7 @@ This is an ETL pipeline that I created to analyse the backtests of two individua
 The tool also allowed me to find the optimal setting for the "max_counter_losing_trade_sequence" variable, which is around 20. After 20 sequent losses, the position sizing will be adjusted to 1 share, untill the first trade with profit re-occurs.
 
 **Input**
+
 A list of .csv exports from Tradingview, for both trading strategies.
 
 **Output**
