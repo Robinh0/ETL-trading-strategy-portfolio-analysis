@@ -19,10 +19,14 @@ def get_csv_files(strategy_folder_name):
 
 def create_and_merge_dataframes(selected_columns):
     def create_open_and_close_dates(df):
+        df['starting_date'] = None
+        df['ending_date'] = None
         rows_to_drop = []
+        # print(df)
+        # quit()
         for i in range(1, len(df)):
             if df.loc[i, 'type'] == 'Exit Long':
-                df.loc[i, 'starting_date'] = df.loc[i+-1, 'date/time']
+                df.loc[i, 'starting_date'] = df.loc[i+1, 'date/time']
                 df.loc[i, 'ending_date'] = df.loc[i, 'date/time']
             else:
                 rows_to_drop.append(i)
@@ -244,13 +248,13 @@ MAX_COUNTER_VALUE = 20
 SELECTED_COLUMNS_START = [
     'symbol', 'type', 'starting_date', 'ending_date', 'profit_%', 'cum_bankroll']
 
-# STRATEGY_FOLDER_NAME = 'fib_dynamic'
-STRATEGY_FOLDER_NAME = 'quant_program'
+STRATEGY_FOLDER_NAME = 'fib_dynamic'
+# STRATEGY_FOLDER_NAME = 'quant_program'
 
 csv_files = get_csv_files(STRATEGY_FOLDER_NAME)
 result_dataframes = []
 
-for i in np.arange(0.25, 4.25, 0.25):
+for i in np.arange(0.25, 1.75, 0.25):
     PCT_OF_CAPITAL_PER_TRADE = i
     MAX_TRADES = int(MARGIN_FACTOR / PCT_OF_CAPITAL_PER_TRADE)
 
