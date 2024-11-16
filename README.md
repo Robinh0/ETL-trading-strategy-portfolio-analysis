@@ -17,7 +17,7 @@ Below we see a comparison of the results with a position size of 0.25 (25%) of t
 Therefore, it is my hypothesis that the fib_dynamic strategy with a position size of 50% total bankroll will outperform the quant_program strategy with 25% of total bankroll, with the potential of having a slightly higher drawdown percentage.
 
 fib_dynamic_strategy
-![bankroll_pctCap_0 25_maxCounter_20](https://github.com/user-attachments/assets/080a1f05-e225-49ef-9264-4a03bcd43ffc)
+![image](https://github.com/user-attachments/assets/43f71fd7-7c95-498f-bb7d-305347483e21)
 
 quant_program_strategy
 ![bankroll_pctCap_0 25_maxCounter_20](https://github.com/user-attachments/assets/cc746b4d-83e0-406c-b98e-d2f031b3ea1a)
